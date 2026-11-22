@@ -3,18 +3,20 @@
  */
 
 const STORAGE_KEY = "nexreview_backend_url";
+const DEFAULT_RENDER_BACKEND = "https://code-reviewer-agent.onrender.com";
 
 function getInitialBackendUrl() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) return saved;
-  // If running locally on port 8000, use origin
-  if (window.location.port === "8000") return window.location.origin;
-  // If running on localhost or 127.0.0.1 (any port)
-  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-    return "http://localhost:8000";
+  // If user previously saved localhost while on remote HTTPS, ignore localhost and use Render
+  if (saved && (!saved.includes("localhost") || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+    return saved;
   }
-  // If running on Vercel or any remote domain, default to placeholder or saved
-  return "http://localhost:8000";
+  // If running locally on localhost or 127.0.0.1
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return window.location.port === "8000" ? window.location.origin : "http://localhost:8000";
+  }
+  // Default for Vercel, mobile devices, and all remote environments
+  return DEFAULT_RENDER_BACKEND;
 }
 
 let currentBackendUrl = getInitialBackendUrl();

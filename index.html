@@ -890,7 +890,7 @@ code, pre, .code-pre, #code-editor {
         Set the target Render backend API endpoint (e.g. <code>https://nexreview-backend.onrender.com</code>) or local backend (<code>http://localhost:8000</code>).
       </p>
       <div class="config-input-group">
-        <input type="text" id="backend-url-input" placeholder="http://localhost:8000" />
+        <input type="text" id="backend-url-input" placeholder="https://code-reviewer-agent.onrender.com" />
         <button id="test-connection-btn" class="btn-secondary">Test Connection</button>
         <button id="save-config-btn" class="btn-primary-sm">Save</button>
       </div>
@@ -1206,18 +1206,20 @@ code, pre, .code-pre, #code-editor {
  */
 
 const STORAGE_KEY = "nexreview_backend_url";
+const DEFAULT_RENDER_BACKEND = "https://code-reviewer-agent.onrender.com";
 
 function getInitialBackendUrl() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) return saved;
-  // If running locally on port 8000, use origin
-  if (window.location.port === "8000") return window.location.origin;
-  // If running on localhost or 127.0.0.1 (any port)
-  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-    return "http://localhost:8000";
+  // If user previously saved localhost while on remote HTTPS, ignore localhost and use Render
+  if (saved && (!saved.includes("localhost") || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+    return saved;
   }
-  // If running on Vercel or any remote domain, default to placeholder or saved
-  return "http://localhost:8000";
+  // If running locally on localhost or 127.0.0.1
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return window.location.port === "8000" ? window.location.origin : "http://localhost:8000";
+  }
+  // Default for Vercel, mobile devices, and all remote environments
+  return DEFAULT_RENDER_BACKEND;
 }
 
 let currentBackendUrl = getInitialBackendUrl();
@@ -1228,42 +1230,123 @@ const FALLBACK_SAMPLES = {
   python_sqli: {
     title: "🐍 Python: Dynamic SQL Injection",
     language: "Python",
-    code: `import sqlite3\n\ndef fetch_user_record(username):\n    conn = sqlite3.connect("app.db")\n    cursor = conn.cursor()\n    # High Risk: Dynamic f-string allows SQL injection\n    query = f"SELECT id, username, email FROM users WHERE name = '{username}'"\n    cursor.execute(query)\n    return cursor.fetchall()`
+    code: `import sqlite3
+
+def fetch_user_record(username):
+    conn = sqlite3.connect("app.db")
+    cursor = conn.cursor()
+    # High Risk: Dynamic f-string allows SQL injection
+    query = f"SELECT id, username, email FROM users WHERE name = '{username}'"
+    cursor.execute(query)
+    return cursor.fetchall()`
   },
   sql_cartesian: {
     title: "🗄️ SQL: Unindexed Cartesian Join & DELETE",
     language: "SQL",
-    code: `-- Critical: Unconditional DELETE + Wildcard Join\nDELETE FROM audit_logs;\n\nSELECT * \nFROM users u, transactions t, accounts a\nWHERE u.status = 'active'\nORDER BY t.created_at DESC;`
+    code: `-- Critical: Unconditional DELETE + Wildcard Join
+DELETE FROM audit_logs;
+
+SELECT * 
+FROM users u, transactions t, accounts a
+WHERE u.status = 'active'
+ORDER BY t.created_at DESC;`
   },
   mongo_injection: {
     title: "🍃 MongoDB: NoSQL $where Injection",
     language: "MongoDB",
-    code: `// NoSQL Injection via $where + Unbounded Query\nconst targetName = req.body.username;\n\ndb.users.find({\n    $where: "this.username == '" + targetName + "'"\n});\n\n// Dangerous unbounded fetch\nconst allRecords = db.audit_trails.find({});`
+    code: `// NoSQL Injection via $where + Unbounded Query
+const targetName = req.body.username;
+
+db.users.find({
+    $where: "this.username == '" + targetName + "'"
+});
+
+// Dangerous unbounded fetch
+const allRecords = db.audit_trails.find({});`
   },
   perl_open: {
     title: "🐪 Perl: Two-Argument open() Vulnerability",
     language: "Perl",
-    code: `#!/usr/bin/perl\n# Insecure 2-arg open() permits pipe command injection\n\nsub read_user_file {\n    my ($file) = @_;\n    \n    # Bug: 2-arg open allows "| rm -rf /" shell execution\n    open(FILE, "< $file") or die "Cannot open: $!";\n    \n    while (<FILE>) {\n        print $_;\n    }\n    close(FILE);\n}\n\nread_user_file("data.txt");`
+    code: `#!/usr/bin/perl
+# Insecure 2-arg open() permits pipe command injection
+
+sub read_user_file {
+    my ($file) = @_;
+    
+    # Bug: 2-arg open allows "| rm -rf /" shell execution
+    open(FILE, "< $file") or die "Cannot open: $!";
+    
+    while (<FILE>) {
+        print $_;
+    }
+    close(FILE);
+}
+
+read_user_file("data.txt");`
   },
   php_scope: {
     title: "🐘 PHP: Zero Division & Broken Scope",
     language: "PHP",
-    code: `<?php\n$numbers = [10, 20, 30, 40, 50];\n\nfor ($i = 0; $i < count($numbers); $i++) {\n    $total += $numbers[$i];\n}\n\n$average = $total / 0;\n\necho "Average: " . calculateAverage($numbers);\n?>`
+    code: `<?php
+$numbers = [10, 20, 30, 40, 50];
+
+for ($i = 0; $i < count($numbers); $i++) {
+    $total += $numbers[$i];
+}
+
+$average = $total / 0;
+
+echo "Average: " . calculateAverage($numbers);
+?>`
   },
   js_xss: {
     title: "⚡ JavaScript: DOM XSS & Loose Coercion",
     language: "JavaScript",
-    code: `// DOM XSS via innerHTML and loose equality\nfunction renderUserProfile(userData) {\n    const userRole = userData.role;\n    \n    // Loose equality hazard\n    if (userRole == "admin") {\n        document.getElementById("badge").innerHTML = "<b>" + userData.name + "</b>";\n    }\n    \n    let total = 0;\n    let avg = total / 0;\n    console.log("Average:", avg);\n}`
+    code: `// DOM XSS via innerHTML and loose equality
+function renderUserProfile(userData) {
+    const userRole = userData.role;
+    
+    // Loose equality hazard
+    if (userRole == "admin") {
+        document.getElementById("badge").innerHTML = "<b>" + userData.name + "</b>";
+    }
+    
+    let total = 0;
+    let avg = total / 0;
+    console.log("Average:", avg);
+}`
   },
   c_overflow: {
     title: "⚙️ C: Unbounded Buffer Overflow",
     language: "C",
-    code: `#include <stdio.h>\n#include <string.h>\n\nvoid execute_task(char *input_str) {\n    char local_buf[16];\n    // Dangerous: gets and strcpy lack bounds checking\n    strcpy(local_buf, input_str);\n    printf("Result: %s\\n", local_buf);\n}\n\nint main() {\n    execute_task("This string exceeds sixteen bytes limit!");\n    return 0;\n}`
+    code: `#include <stdio.h>
+#include <string.h>
+
+void execute_task(char *input_str) {
+    char local_buf[16];
+    // Dangerous: gets and strcpy lack bounds checking
+    strcpy(local_buf, input_str);
+    printf("Result: %s\n", local_buf);
+}
+
+int main() {
+    execute_task("This string exceeds sixteen bytes limit!");
+    return 0;
+}`
   },
   java_resource: {
     title: "☕ Java: Resource Leak & Concatenation",
     language: "Java",
-    code: `import java.io.*;\n\npublic class FileParser {\n    public void dumpFile(String path) throws IOException {\n        // Resource leak: unclosed stream without try-with-resources\n        BufferedReader reader = new BufferedReader(new FileReader(path));\n        String line = reader.readLine();\n        System.out.println("First line: " + line);\n    }\n}`
+    code: `import java.io.*;
+
+public class FileParser {
+    public void dumpFile(String path) throws IOException {
+        // Resource leak: unclosed stream without try-with-resources
+        BufferedReader reader = new BufferedReader(new FileReader(path));
+        String line = reader.readLine();
+        System.out.println("First line: " + line);
+    }
+}`
   }
 };
 
@@ -1306,7 +1389,8 @@ function initApp() {
   function updateStats() {
     const text = editor ? editor.value : "";
     const chars = text.length;
-    const lines = text ? text.split("\n").length : 0;
+    const lines = text ? text.split("
+").length : 0;
     if (statsEl) {
       statsEl.textContent = `${chars} characters • ${lines} lines`;
     }
