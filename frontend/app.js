@@ -274,27 +274,39 @@ if (document.readyState === "loading") {
 }
 
 async function checkBackendHealth(url) {
+  let targetUrl = (url || "").trim().replace(/\/+$/, "");
+
+  // Auto-upgrade to Render HTTPS if on remote HTTPS
+  if (window.location.protocol === "https:" && targetUrl.startsWith("http://")) {
+    targetUrl = DEFAULT_RENDER_BACKEND;
+    currentBackendUrl = DEFAULT_RENDER_BACKEND;
+    localStorage.setItem(STORAGE_KEY, DEFAULT_RENDER_BACKEND);
+    const backendUrlInput = document.getElementById("backend-url-input");
+    if (backendUrlInput) backendUrlInput.value = DEFAULT_RENDER_BACKEND;
+  }
+
   const backendIndicator = document.getElementById("backend-indicator");
   const backendStatusText = document.getElementById("backend-status-text");
 
   if (backendIndicator) backendIndicator.className = "pulse-dot pulse-amber";
   if (backendStatusText) backendStatusText.textContent = "Backend: Connecting...";
 
-  // Check for HTTPS -> HTTP Mixed content block
-  if (window.location.protocol === "https:" && url.startsWith("http://")) {
-    if (backendIndicator) backendIndicator.className = "pulse-dot pulse-red";
-    if (backendStatusText) backendStatusText.textContent = "Backend: Mixed Content (Needs HTTPS)";
-    return false;
-  }
-
   try {
-    const res = await fetch(`${url}/api/health`, { method: "GET" });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    const res = await fetch(`${targetUrl}/api/health`, { 
+      method: "GET",
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       if (backendIndicator) backendIndicator.className = "pulse-dot";
       if (backendStatusText) backendStatusText.textContent = "Backend: Online";
 
       // Load languages & samples dynamically
-      fetch(`${url}/api/samples`)
+      fetch(`${targetUrl}/api/samples`)
         .then((r) => r.json())
         .then((data) => {
           if (data.samples) {
@@ -311,8 +323,12 @@ async function checkBackendHealth(url) {
       return false;
     }
   } catch (e) {
-    if (backendIndicator) backendIndicator.className = "pulse-dot pulse-red";
-    if (backendStatusText) backendStatusText.textContent = "Backend: Offline";
+    if (backendIndicator) backendIndicator.className = "pulse-dot pulse-amber";
+    if (backendStatusText) backendStatusText.textContent = "Backend: Waking up Render...";
+    // Automatically retry in 4 seconds while Render cold start finishes
+    setTimeout(() => {
+      checkBackendHealth(targetUrl);
+    }, 4000);
     return false;
   }
 }
@@ -344,10 +360,12 @@ async function handleRunReview() {
     return;
   }
 
-  // Check if backend is pointing to localhost on a remote HTTPS site
-  if (window.location.protocol === "https:" && currentBackendUrl.startsWith("http://")) {
-    showError(`Your browser is on HTTPS (${window.location.origin}), but your backend is configured as '${currentBackendUrl}'. Browsers block unencrypted HTTP requests from HTTPS sites. Please click the ⚙️ icon in the top right to configure your deployed Render backend HTTPS URL (e.g. https://your-backend.onrender.com).`);
-    return;
+  // Ensure clean HTTPS backend URL on remote HTTPS environments
+  let targetUrl = (currentBackendUrl || DEFAULT_RENDER_BACKEND).trim().replace(/\/+$/, "");
+  if (window.location.protocol === "https:" && targetUrl.startsWith("http://")) {
+    targetUrl = DEFAULT_RENDER_BACKEND;
+    currentBackendUrl = DEFAULT_RENDER_BACKEND;
+    localStorage.setItem(STORAGE_KEY, DEFAULT_RENDER_BACKEND);
   }
 
   hideError();
@@ -360,7 +378,7 @@ async function handleRunReview() {
   currentCode = code;
 
   try {
-    const res = await fetch(`${currentBackendUrl}/api/review`, {
+    const res = await fetch(`${targetUrl}/api/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
