@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexReview AI | Intelligent Multi-Engine Code Reviewer</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366F1'><path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+/* NexReview AI Design System */
+:root {
+  --bg-dark: #0B0F19;
+  --bg-card: rgba(26, 32, 53, 0.75);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(99, 102, 241, 0.35);
+  --accent-blue: #38BDF8;
+  --accent-purple: #818CF8;
+  --accent-indigo: #6366F1;
+  --accent-emerald: #10B981;
+  --accent-rose: #F43F5E;
+  --accent-amber: #F59E0B;
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(79, 70, 229, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 85% 25%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 50% 85%, rgba(236, 72, 153, 0.06) 0%, transparent 50%);
+  color: var(--text-main);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+code, pre, .code-pre, #code-editor {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+.app-layout {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4F46E5, #06B6D4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 0 15px rgba(79, 70, 229, 0.4);
+}
+
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.brand-badge {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent-purple);
+  margin-left: 3px;
+}
+
+/* Backend Status Pill */
+.backend-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+  color: #CBD5E1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backend-status-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-emerald);
+  box-shadow: 0 0 8px var(--accent-emerald);
+}
+
+.pulse-amber {
+  background-color: var(--accent-amber);
+  box-shadow: 0 0 8px var(--accent-amber);
+}
+
+.pulse-red {
+  background-color: var(--accent-rose);
+  box-shadow: 0 0 8px var(--accent-rose);
+}
+
+/* Glass Card */
+.glass-card {
+  background: linear-gradient(145deg, rgba(26, 32, 53, 0.75) 0%, rgba(15, 23, 42, 0.65) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(14px);
+  transition: border-color 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Backend Config Drawer */
+.backend-config-card {
+  margin-bottom: 24px;
+  border-left: 4px solid var(--accent-indigo);
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.config-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.config-input-group {
+  display: flex;
+  gap: 8px;
+  max-width: 650px;
+}
+
+.config-input-group input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.test-feedback {
+  margin-top: 8px;
+  font-size: 0.82rem;
+}
+
+/* Hero */
+.hero-container {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #3B82F6, #8B5CF6, #EC4899, #10B981);
+}
+
+.hero-pill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(99, 102, 241, 0.15);
+  color: #A5B4FC;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.pill-emerald { background: rgba(16, 185, 129, 0.12); color: #6EE7B7; border-color: rgba(16, 185, 129, 0.3); }
+.pill-rose { background: rgba(244, 63, 94, 0.12); color: #FDA4AF; border-color: rgba(244, 63, 94, 0.3); }
+.pill-purple { background: rgba(192, 132, 252, 0.12); color: #D8B4FE; border-color: rgba(192, 132, 252, 0.3); }
+
+.hero-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #FFFFFF 20%, #CBD5E1 70%, #94A3B8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+.hero-subtitle {
+  color: var(--text-muted);
+  font-size: 1.02rem;
+  max-width: 860px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hero-tags span {
+  font-size: 0.75rem;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+/* Controls Grid */
+.controls-grid {
+  display: grid;
+  grid-templateColumns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.control-group label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.control-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.88rem;
+  outline: none;
+}
+
+/* Editor */
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.editor-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.editor-wrapper {
+  margin-bottom: 16px;
+}
+
+#code-editor {
+  width: 100%;
+  height: 240px;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(5, 8, 16, 0.95);
+  color: #F8FAFC;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+}
+
+#code-editor:focus {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+}
+
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.editor-stats {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  color: white;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6);
+  filter: brightness(1.08);
+}
+
+.btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-primary-sm {
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #CBD5E1;
+  font-weight: 600;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.btn-secondary-sm {
+  background: rgba(255, 255, 255, 0.05);
+  color: #CBD5E1;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.btn-secondary-sm:hover, .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* Spinner */
+.loading-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-top: 16px;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(99, 102, 241, 0.2);
+  border-top-color: var(--accent-indigo);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-title {
+  font-weight: 700;
+  color: #F8FAFC;
+  font-size: 0.95rem;
+}
+
+.loading-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.alert-banner {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.alert-danger {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  color: #FDA4AF;
+}
+
+/* Report Section */
+.report-section {
+  margin-top: 32px;
+}
+
+.critical-alert {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.alert-icon { font-size: 1.8rem; }
+.alert-title { color: #FDA4AF; font-size: 1.05rem; }
+.alert-message { color: #CBD5E1; font-size: 0.88rem; margin-top: 2px; }
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-templateColumns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric-card-pro {
+  background: linear-gradient(145deg, rgba(26, 32, 53, 0.8) 0%, rgba(15, 23, 42, 0.7) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.metric-card-pro:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.metric-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.score-glow {
+  font-size: 2.8rem;
+  font-weight: 800;
+}
+
+.score-excellent {
+  color: var(--accent-emerald);
+  text-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+}
+
+.score-warning {
+  color: var(--accent-amber);
+  text-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+}
+
+.score-danger {
+  color: var(--accent-rose);
+  text-shadow: 0 0 25px rgba(244, 63, 94, 0.4);
+}
+
+.score-den {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.metric-hero-val {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 4px 0;
+}
+
+.metric-sub-val {
+  font-size: 0.82rem;
+}
+
+/* Sub-scores */
+.subscores-card {
+  margin-bottom: 24px;
+}
+
+.progress-bars-grid {
+  display: grid;
+  grid-templateColumns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.fill-cyan { background: linear-gradient(90deg, #38BDF8, #6366F1); }
+.fill-emerald { background: linear-gradient(90deg, #10B981, #06B6D4); }
+.fill-amber { background: linear-gradient(90deg, #F59E0B, #EC4899); }
+
+.severity-chips-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* Severity Badges */
+.sev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sev-critical { background: rgba(244, 63, 94, 0.15); color: #FDA4AF; border: 1px solid rgba(244, 63, 94, 0.4); }
+.sev-high { background: rgba(249, 115, 22, 0.15); color: #FDBA74; border: 1px solid rgba(249, 115, 22, 0.4); }
+.sev-medium { background: rgba(234, 179, 8, 0.15); color: #FDE047; border: 1px solid rgba(234, 179, 8, 0.4); }
+.sev-low { background: rgba(59, 130, 246, 0.15); color: #93C5FD; border: 1px solid rgba(59, 130, 246, 0.4); }
+
+/* Tabs */
+.tabs-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tabs-nav {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px 0;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+}
+
+.tab-btn {
+  padding: 10px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover { color: var(--text-main); }
+.tab-btn.active {
+  color: var(--accent-indigo);
+  border-bottom: 2px solid var(--accent-indigo);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.tab-contents {
+  padding: 24px;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.panel-heading {
+  font-size: 1.15rem;
+  color: #F8FAFC;
+  margin-bottom: 16px;
+}
+
+.summary-box {
+  background: rgba(99, 102, 241, 0.08);
+  border-left: 4px solid var(--accent-indigo);
+  padding: 16px;
+  border-radius: 8px;
+  line-height: 1.6;
+  color: #E2E8F0;
+}
+
+.complexity-cards-grid {
+  display: grid;
+  grid-templateColumns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.complexity-desc {
+  color: #CBD5E1;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Issues Cards */
+.issue-card {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.issue-card:hover {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.issue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.issue-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.issue-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+.line-tag {
+  background: rgba(255, 255, 255, 0.08);
+  color: #CBD5E1;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.issue-desc {
+  margin: 8px 0;
+  color: #CBD5E1;
+  font-size: 0.92rem;
+}
+
+.cwe-ref {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.cwe-ref code {
+  color: #FCA5A5;
+}
+
+.issue-remediation {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  color: #6EE7B7;
+  background: rgba(16, 185, 129, 0.06);
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.issue-resolution {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  color: #93C5FD;
+  background: rgba(59, 130, 246, 0.06);
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+/* Diff View */
+.autofix-header, .tests-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.diff-toggle-group {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-toggle {
+  background: rgba(255, 255, 255, 0.05);
+  color: #CBD5E1;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.btn-toggle.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: var(--accent-indigo);
+  color: #A5B4FC;
+}
+
+.diff-side-grid {
+  display: grid;
+  grid-templateColumns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.diff-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.label-red { color: #FDA4AF; }
+.label-green { color: #6EE7B7; }
+.label-blue { color: #93C5FD; }
+
+.code-pre {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border-subtle);
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  max-height: 480px;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.code-red { border-color: rgba(244, 63, 94, 0.25); }
+.code-green { border-color: rgba(16, 185, 129, 0.25); }
+.code-purple { color: #A5B4FC; border-color: rgba(165, 180, 252, 0.2); }
+
+/* Best Practices */
+.practice-item {
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 3px solid var(--accent-purple);
+  border-radius: 6px;
+  margin-bottom: 10px;
+  color: #E2E8F0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+/* Footer */
+.app-footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+</style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo">⚡</div>
+        <div class="brand-text">
+          <span class="brand-name">NexReview</span>
+          <span class="brand-badge">AI</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div id="backend-status-pill" class="backend-status-pill" title="Click to configure backend API URL">
+          <span id="backend-indicator" class="pulse-dot pulse-amber"></span>
+          <span id="backend-status-text">Backend: Connecting...</span>
+          <span class="gear-icon">⚙️</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Backend Config Drawer / Modal -->
+    <div id="backend-config-card" class="glass-card backend-config-card" style="display: none;">
+      <div class="config-header">
+        <h4>⚙️ Render Backend Configuration</h4>
+        <button id="close-config-btn" class="btn-text">✕</button>
+      </div>
+      <p class="config-desc">
+        Set the target Render backend API endpoint (e.g. <code>https://nexreview-backend.onrender.com</code>) or local backend (<code>http://localhost:8000</code>).
+      </p>
+      <div class="config-input-group">
+        <input type="text" id="backend-url-input" placeholder="http://localhost:8000" />
+        <button id="test-connection-btn" class="btn-secondary">Test Connection</button>
+        <button id="save-config-btn" class="btn-primary-sm">Save</button>
+      </div>
+      <div id="connection-test-feedback" class="test-feedback"></div>
+    </div>
+
+    <!-- Hero Banner -->
+    <section class="hero-container">
+      <div class="hero-pill-row">
+        <span class="pill-tag"><span class="pulse-dot"></span> Pipeline Ready</span>
+        <span class="pill-tag pill-emerald">Multi-Language Engine</span>
+        <span class="pill-tag pill-rose">CWE Security Audit</span>
+        <span class="pill-tag pill-purple">Vercel & Render Ready</span>
+      </div>
+      <h1 class="hero-title">⚡ NexReview AI Agent</h1>
+      <p class="hero-subtitle">
+        Enterprise-grade code reviewer combining deep static AST analysis, security vulnerability auditing, 
+        code smell diagnostics, algorithmic complexity modeling, and automated test & auto-fix diff synthesis.
+      </p>
+      <div class="hero-tags">
+        <span>Python</span><span>JavaScript</span><span>TypeScript</span><span>SQL</span>
+        <span>MongoDB</span><span>PHP</span><span>Java</span><span>C / C++</span><span>Perl</span>
+        <span>Go</span><span>Rust</span><span>Ruby</span>
+      </div>
+    </section>
+
+    <!-- Main Workspace -->
+    <main class="main-card glass-card">
+      <!-- Control Deck -->
+      <div class="controls-grid">
+        <div class="control-group">
+          <label for="language-select">🎯 Target Language</label>
+          <select id="language-select">
+            <option value="Auto-Detect">Auto-Detect</option>
+            <option value="Python" selected>Python</option>
+            <option value="JavaScript">JavaScript</option>
+            <option value="TypeScript">TypeScript</option>
+            <option value="SQL">SQL</option>
+            <option value="MongoDB">MongoDB</option>
+            <option value="Perl">Perl</option>
+            <option value="PHP">PHP</option>
+            <option value="Java">Java</option>
+            <option value="C">C</option>
+            <option value="C++">C++</option>
+            <option value="C#">C#</option>
+            <option value="Go">Go</option>
+            <option value="Rust">Rust</option>
+            <option value="Ruby">Ruby</option>
+            <option value="HTML/CSS">HTML/CSS</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="sample-select">📦 Quick Load Sample</label>
+          <select id="sample-select">
+            <option value="">-- Choose Sample Snippet --</option>
+            <option value="python_sqli" selected>🐍 Python: Dynamic SQL Injection</option>
+            <option value="sql_cartesian">🗄️ SQL: Unindexed Cartesian Join & DELETE</option>
+            <option value="mongo_injection">🍃 MongoDB: NoSQL $where Injection</option>
+            <option value="perl_open">🐪 Perl: Two-Argument open() Vulnerability</option>
+            <option value="php_scope">🐘 PHP: Zero Division & Broken Scope</option>
+            <option value="js_xss">⚡ JavaScript: DOM XSS & Loose Coercion</option>
+            <option value="c_overflow">⚙️ C: Unbounded Buffer Overflow</option>
+            <option value="java_resource">☕ Java: Resource Leak & Concatenation</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Editor Toolbar -->
+      <div class="editor-toolbar">
+        <span class="editor-label">Source Code Input</span>
+        <div class="toolbar-actions">
+          <button id="clear-code-btn" class="btn-secondary-sm">Clear</button>
+          <button id="reset-sample-btn" class="btn-secondary-sm">Reset Sample</button>
+        </div>
+      </div>
+
+      <!-- Code Textarea -->
+      <div class="editor-wrapper">
+        <textarea id="code-editor" spellcheck="false" placeholder="Paste source code snippet here..."></textarea>
+      </div>
+
+      <!-- Review Action Bar -->
+      <div class="action-bar">
+        <button id="run-review-btn" class="btn-primary">
+          <span class="btn-icon">🚀</span>
+          <span class="btn-text">Run Comprehensive Review</span>
+        </button>
+
+        <span id="editor-stats" class="editor-stats">0 characters • 0 lines</span>
+      </div>
+
+      <!-- Status / Loader Notification -->
+      <div id="loading-container" class="loading-container" style="display: none;">
+        <div class="spinner"></div>
+        <div class="loading-text">
+          <div class="loading-title">Orchestrating Review Pipeline...</div>
+          <div class="loading-subtitle">AST Static Analysis ➔ CWE Security Audit ➔ Smells ➔ AI Deep Review ➔ Auto-Fix Synthesis</div>
+        </div>
+      </div>
+
+      <div id="error-banner" class="alert-banner alert-danger" style="display: none;"></div>
+    </main>
+
+    <!-- Report Section -->
+    <section id="report-section" class="report-section" style="display: none;">
+      <!-- Critical Flaws Alert -->
+      <div id="critical-alert" class="critical-alert" style="display: none;">
+        <span class="alert-icon">🚨</span>
+        <div class="alert-content">
+          <strong class="alert-title">Critical Flaws Detected</strong>
+          <div class="alert-message">
+            The submitted code contains critical syntax errors or severe security vulnerabilities. Check the <strong>Logic & Bugs</strong> and <strong>Auto-Fix & Diff</strong> tabs for details.
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Executive Metric Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card-pro">
+          <div class="metric-label">Quality Score</div>
+          <div id="score-value" class="score-glow">--<span class="score-den">/100</span></div>
+          <div id="score-badge-wrap" style="margin-top: 8px;"></div>
+        </div>
+
+        <div class="metric-card-pro">
+          <div class="metric-label">Language & Runtime</div>
+          <div id="report-lang-main" class="metric-hero-val" style="color: #38BDF8;">--</div>
+          <div id="report-lang-sub" class="metric-sub-val" style="color: #A7F3D0;">--</div>
+        </div>
+
+        <div class="metric-card-pro">
+          <div class="metric-label">Time Complexity</div>
+          <div id="report-time-comp" class="metric-hero-val" style="color: #C084FC;">--</div>
+          <div class="metric-sub-val" style="color: #94A3B8;">Algorithmic Scaling</div>
+        </div>
+
+        <div class="metric-card-pro">
+          <div class="metric-label">Space Complexity</div>
+          <div id="report-space-comp" class="metric-hero-val" style="color: #2DD4BF;">--</div>
+          <div class="metric-sub-val" style="color: #94A3B8;">Memory Footprint</div>
+        </div>
+      </div>
+
+      <!-- Sub-Score Progress Bars & Severity Counters -->
+      <div class="glass-card subscores-card">
+        <div class="progress-bars-grid">
+          <div>
+            <div class="progress-header">
+              <span>Security Index</span>
+              <span id="sub-sec-val" style="color: #38BDF8;">--/100</span>
+            </div>
+            <div class="progress-track">
+              <div id="sub-sec-bar" class="progress-fill fill-cyan" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="progress-header">
+              <span>Maintainability Index</span>
+              <span id="sub-maint-val" style="color: #A7F3D0;">--/100</span>
+            </div>
+            <div class="progress-track">
+              <div id="sub-maint-bar" class="progress-fill fill-emerald" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="progress-header">
+              <span>Performance Index</span>
+              <span id="sub-perf-val" style="color: #FDE047;">--/100</span>
+            </div>
+            <div class="progress-track">
+              <div id="sub-perf-bar" class="progress-fill fill-amber" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="severity-chips-row" class="severity-chips-row">
+          <span class="sev-badge sev-critical" id="chip-critical">🚨 Critical (0)</span>
+          <span class="sev-badge sev-high" id="chip-high">⚠️ High Priority (0)</span>
+          <span class="sev-badge sev-medium" id="chip-medium">💡 Medium (0)</span>
+          <span class="sev-badge sev-low" id="chip-low">ℹ️ Style / Low (0)</span>
+        </div>
+      </div>
+
+      <!-- Multi-Tab Details -->
+      <div class="glass-card tabs-card">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="tab-overview">📊 Executive Summary</button>
+          <button class="tab-btn" data-tab="tab-security">🛡️ Security Vulnerabilities (<span id="count-sec">0</span>)</button>
+          <button class="tab-btn" data-tab="tab-bugs">🐛 Logic & Bugs (<span id="count-bugs">0</span>)</button>
+          <button class="tab-btn" data-tab="tab-smells">🧹 Code Smells & Style (<span id="count-smells">0</span>)</button>
+          <button class="tab-btn" data-tab="tab-autofix">🔄 Auto-Fix & Diff</button>
+          <button class="tab-btn" data-tab="tab-tests">🧪 Unit Tests</button>
+          <button class="tab-btn" data-tab="tab-practices">💡 Best Practices</button>
+          <button class="tab-btn" data-tab="tab-export">📥 Export Report</button>
+        </div>
+
+        <div class="tab-contents">
+          <!-- Tab 1: Executive Summary -->
+          <div id="tab-overview" class="tab-panel active">
+            <h3 class="panel-heading">📋 Executive Summary</h3>
+            <div id="exec-summary-box" class="summary-box"></div>
+
+            <h3 class="panel-heading" style="margin-top: 24px;">⏱️ Algorithmic Complexity Breakdown</h3>
+            <div class="complexity-cards-grid">
+              <div class="issue-card" style="border-left: 4px solid #C084FC;">
+                <div style="font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">⏱️ Time Complexity</div>
+                <div id="detail-time-comp" style="font-size: 1.5rem; font-weight: 800; color: #C084FC;">--</div>
+              </div>
+              <div class="issue-card" style="border-left: 4px solid #2DD4BF;">
+                <div style="font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">💾 Space Complexity</div>
+                <div id="detail-space-comp" style="font-size: 1.5rem; font-weight: 800; color: #2DD4BF;">--</div>
+              </div>
+            </div>
+            <div id="complexity-explanation" class="complexity-desc"></div>
+          </div>
+
+          <!-- Tab 2: Security -->
+          <div id="tab-security" class="tab-panel">
+            <h3 class="panel-heading">🛡️ Security Vulnerability Audit</h3>
+            <div id="security-issues-list"></div>
+          </div>
+
+          <!-- Tab 3: Bugs -->
+          <div id="tab-bugs" class="tab-panel">
+            <h3 class="panel-heading">🐛 Bugs & Logic Anomalies</h3>
+            <div id="bugs-list"></div>
+          </div>
+
+          <!-- Tab 4: Code Smells -->
+          <div id="tab-smells" class="tab-panel">
+            <h3 class="panel-heading">🧹 Architectural & Cognitive Smells</h3>
+            <div id="smells-list"></div>
+
+            <h3 class="panel-heading" style="margin-top: 28px;">🎨 Code Style & Conventions</h3>
+            <div id="style-list"></div>
+          </div>
+
+          <!-- Tab 5: Auto-Fix -->
+          <div id="tab-autofix" class="tab-panel">
+            <div class="autofix-header">
+              <h3 class="panel-heading" style="margin: 0;">🔄 Automated Code Fix & Diff Comparison</h3>
+              <div class="diff-toggle-group">
+                <button id="mode-side-btn" class="btn-toggle active">Side-by-Side</button>
+                <button id="mode-unified-btn" class="btn-toggle">Unified Diff</button>
+                <button id="copy-fix-btn" class="btn-secondary-sm">📋 Copy Fix</button>
+              </div>
+            </div>
+
+            <div id="diff-side-view" class="diff-side-grid">
+              <div>
+                <div class="diff-label label-red">❌ Original Code (Before)</div>
+                <pre id="diff-orig-code" class="code-pre code-red"></pre>
+              </div>
+              <div>
+                <div class="diff-label label-green">✅ Auto-Fixed Code (After)</div>
+                <pre id="diff-fixed-code" class="code-pre code-green"></pre>
+              </div>
+            </div>
+
+            <div id="diff-unified-view" style="display: none;">
+              <div class="diff-label label-blue">🔀 Unified Line Diff</div>
+              <pre id="diff-unified-code" class="code-pre"></pre>
+            </div>
+          </div>
+
+          <!-- Tab 6: Unit Tests -->
+          <div id="tab-tests" class="tab-panel">
+            <div class="tests-header">
+              <h3 class="panel-heading" style="margin: 0;">🧪 Autonomous Unit Test Suite</h3>
+              <button id="copy-tests-btn" class="btn-secondary-sm">📋 Copy Tests</button>
+            </div>
+            <p style="color: #94A3B8; font-size: 0.88rem; margin: 8px 0 14px;">
+              Generated unit tests covering happy paths, edge bounds, and negative assertions:
+            </p>
+            <pre id="tests-code" class="code-pre code-purple"></pre>
+          </div>
+
+          <!-- Tab 7: Best Practices -->
+          <div id="tab-practices" class="tab-panel">
+            <h3 class="panel-heading">💡 Senior Engineering Recommendations</h3>
+            <div id="practices-list"></div>
+          </div>
+
+          <!-- Tab 8: Export -->
+          <div id="tab-export" class="tab-panel">
+            <h3 class="panel-heading">📥 Download & Export Report</h3>
+            <p style="color: #94A3B8; font-size: 0.9rem; margin-bottom: 16px;">
+              Export the full multi-engine audit as an enterprise Markdown report (.md).
+            </p>
+            <button id="download-report-btn" class="btn-primary" style="margin-bottom: 20px;">
+              📄 Download Full Markdown Report (.md)
+            </button>
+            <h4 style="color: #CBD5E1; font-size: 0.92rem; margin-bottom: 8px;">Raw Markdown Preview:</h4>
+            <pre id="markdown-preview" class="code-pre"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>NexReview AI Agent • Hybrid Multi-Engine AST, CWE, & LLM Pipeline</div>
+      <div>Deploy Frontend to <strong>Vercel</strong> | Deploy Backend to <strong>Render</strong></div>
+    </footer>
+  </div>
+
+  <script>
+/**
+ * NexReview AI - Client Application Logic
+ */
+
+const STORAGE_KEY = "nexreview_backend_url";
+
+function getInitialBackendUrl() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) return saved;
+  // If running locally on port 8000, use origin
+  if (window.location.port === "8000") return window.location.origin;
+  // If running on localhost or 127.0.0.1 (any port)
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "http://localhost:8000";
+  }
+  // If running on Vercel or any remote domain, default to placeholder or saved
+  return "http://localhost:8000";
+}
+
+let currentBackendUrl = getInitialBackendUrl();
+let currentReport = null;
+let currentCode = "";
+
+const FALLBACK_SAMPLES = {
+  python_sqli: {
+    title: "🐍 Python: Dynamic SQL Injection",
+    language: "Python",
+    code: `import sqlite3\n\ndef fetch_user_record(username):\n    conn = sqlite3.connect("app.db")\n    cursor = conn.cursor()\n    # High Risk: Dynamic f-string allows SQL injection\n    query = f"SELECT id, username, email FROM users WHERE name = '{username}'"\n    cursor.execute(query)\n    return cursor.fetchall()`
+  },
+  sql_cartesian: {
+    title: "🗄️ SQL: Unindexed Cartesian Join & DELETE",
+    language: "SQL",
+    code: `-- Critical: Unconditional DELETE + Wildcard Join\nDELETE FROM audit_logs;\n\nSELECT * \nFROM users u, transactions t, accounts a\nWHERE u.status = 'active'\nORDER BY t.created_at DESC;`
+  },
+  mongo_injection: {
+    title: "🍃 MongoDB: NoSQL $where Injection",
+    language: "MongoDB",
+    code: `// NoSQL Injection via $where + Unbounded Query\nconst targetName = req.body.username;\n\ndb.users.find({\n    $where: "this.username == '" + targetName + "'"\n});\n\n// Dangerous unbounded fetch\nconst allRecords = db.audit_trails.find({});`
+  },
+  perl_open: {
+    title: "🐪 Perl: Two-Argument open() Vulnerability",
+    language: "Perl",
+    code: `#!/usr/bin/perl\n# Insecure 2-arg open() permits pipe command injection\n\nsub read_user_file {\n    my ($file) = @_;\n    \n    # Bug: 2-arg open allows "| rm -rf /" shell execution\n    open(FILE, "< $file") or die "Cannot open: $!";\n    \n    while (<FILE>) {\n        print $_;\n    }\n    close(FILE);\n}\n\nread_user_file("data.txt");`
+  },
+  php_scope: {
+    title: "🐘 PHP: Zero Division & Broken Scope",
+    language: "PHP",
+    code: `<?php\n$numbers = [10, 20, 30, 40, 50];\n\nfor ($i = 0; $i < count($numbers); $i++) {\n    $total += $numbers[$i];\n}\n\n$average = $total / 0;\n\necho "Average: " . calculateAverage($numbers);\n?>`
+  },
+  js_xss: {
+    title: "⚡ JavaScript: DOM XSS & Loose Coercion",
+    language: "JavaScript",
+    code: `// DOM XSS via innerHTML and loose equality\nfunction renderUserProfile(userData) {\n    const userRole = userData.role;\n    \n    // Loose equality hazard\n    if (userRole == "admin") {\n        document.getElementById("badge").innerHTML = "<b>" + userData.name + "</b>";\n    }\n    \n    let total = 0;\n    let avg = total / 0;\n    console.log("Average:", avg);\n}`
+  },
+  c_overflow: {
+    title: "⚙️ C: Unbounded Buffer Overflow",
+    language: "C",
+    code: `#include <stdio.h>\n#include <string.h>\n\nvoid execute_task(char *input_str) {\n    char local_buf[16];\n    // Dangerous: gets and strcpy lack bounds checking\n    strcpy(local_buf, input_str);\n    printf("Result: %s\\n", local_buf);\n}\n\nint main() {\n    execute_task("This string exceeds sixteen bytes limit!");\n    return 0;\n}`
+  },
+  java_resource: {
+    title: "☕ Java: Resource Leak & Concatenation",
+    language: "Java",
+    code: `import java.io.*;\n\npublic class FileParser {\n    public void dumpFile(String path) throws IOException {\n        // Resource leak: unclosed stream without try-with-resources\n        BufferedReader reader = new BufferedReader(new FileReader(path));\n        String line = reader.readLine();\n        System.out.println("First line: " + line);\n    }\n}`
+  }
+};
+
+let sampleSnippets = FALLBACK_SAMPLES;
+
+function initApp() {
+  const editor = document.getElementById("code-editor");
+  const languageSelect = document.getElementById("language-select");
+  const sampleSelect = document.getElementById("sample-select");
+  const statsEl = document.getElementById("editor-stats");
+  const runBtn = document.getElementById("run-review-btn");
+  const clearBtn = document.getElementById("clear-code-btn");
+  const resetBtn = document.getElementById("reset-sample-btn");
+  const statusPill = document.getElementById("backend-status-pill");
+  const configCard = document.getElementById("backend-config-card");
+  const closeConfigBtn = document.getElementById("close-config-btn");
+  const backendUrlInput = document.getElementById("backend-url-input");
+  const testConnBtn = document.getElementById("test-connection-btn");
+  const saveConfigBtn = document.getElementById("save-config-btn");
+  const connFeedback = document.getElementById("connection-test-feedback");
+  const modeSideBtn = document.getElementById("mode-side-btn");
+  const modeUnifiedBtn = document.getElementById("mode-unified-btn");
+  const diffSideView = document.getElementById("diff-side-view");
+  const diffUnifiedView = document.getElementById("diff-unified-view");
+  const copyFixBtn = document.getElementById("copy-fix-btn");
+  const copyTestsBtn = document.getElementById("copy-tests-btn");
+  const downloadReportBtn = document.getElementById("download-report-btn");
+
+  if (!editor) {
+    console.warn("NexReview: #code-editor not found during initApp");
+    return;
+  }
+
+  // Set backend input initial value
+  if (backendUrlInput) {
+    backendUrlInput.value = currentBackendUrl;
+  }
+
+  // Update stats helper
+  function updateStats() {
+    const text = editor ? editor.value : "";
+    const chars = text.length;
+    const lines = text ? text.split("\n").length : 0;
+    if (statsEl) {
+      statsEl.textContent = `${chars} characters • ${lines} lines`;
+    }
+  }
+
+  // Load sample snippet
+  function loadSample(sampleKey) {
+    if (sampleSnippets[sampleKey]) {
+      const s = sampleSnippets[sampleKey];
+      editor.value = s.code;
+      if (s.language && languageSelect) {
+        languageSelect.value = s.language;
+      }
+      updateStats();
+    }
+  }
+
+  // Bind input listeners
+  ["input", "keyup", "paste", "change"].forEach((evt) => {
+    editor.addEventListener(evt, updateStats);
+  });
+
+  // Load initial sample
+  if (sampleSelect && sampleSelect.value) {
+    loadSample(sampleSelect.value);
+  } else {
+    loadSample("python_sqli");
+  }
+
+  updateStats();
+
+  // Sample select change
+  if (sampleSelect) {
+    sampleSelect.addEventListener("change", (e) => {
+      loadSample(e.target.value);
+    });
+  }
+
+  // Clear button
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      editor.value = "";
+      updateStats();
+      editor.focus();
+    });
+  }
+
+  // Reset sample button
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      const key = (sampleSelect && sampleSelect.value) || "python_sqli";
+      loadSample(key);
+    });
+  }
+
+  // Run Review button
+  if (runBtn) {
+    runBtn.addEventListener("click", handleRunReview);
+  }
+
+  // Backend config drawer
+  if (statusPill && configCard) {
+    statusPill.addEventListener("click", () => {
+      configCard.style.display = configCard.style.display === "none" ? "block" : "none";
+    });
+  }
+
+  if (closeConfigBtn && configCard) {
+    closeConfigBtn.addEventListener("click", () => {
+      configCard.style.display = "none";
+    });
+  }
+
+  if (testConnBtn && backendUrlInput && connFeedback) {
+    testConnBtn.addEventListener("click", async () => {
+      const url = backendUrlInput.value.trim().replace(/\/$/, "");
+      connFeedback.textContent = "Testing endpoint...";
+      connFeedback.style.color = "#94A3B8";
+      const ok = await checkBackendHealth(url);
+      if (ok) {
+        connFeedback.textContent = "✅ Connected successfully to Render backend!";
+        connFeedback.style.color = "#6EE7B7";
+      } else {
+        connFeedback.textContent = "❌ Failed to connect. Verify your Render service URL & that it's online.";
+        connFeedback.style.color = "#FDA4AF";
+      }
+    });
+  }
+
+  if (saveConfigBtn && backendUrlInput && configCard) {
+    saveConfigBtn.addEventListener("click", () => {
+      const url = backendUrlInput.value.trim().replace(/\/$/, "");
+      if (url) {
+        currentBackendUrl = url;
+        localStorage.setItem(STORAGE_KEY, url);
+        checkBackendHealth(url);
+        configCard.style.display = "none";
+      }
+    });
+  }
+
+  // Diff toggles
+  if (modeSideBtn && modeUnifiedBtn && diffSideView && diffUnifiedView) {
+    modeSideBtn.addEventListener("click", () => {
+      modeSideBtn.classList.add("active");
+      modeUnifiedBtn.classList.remove("active");
+      diffSideView.style.display = "grid";
+      diffUnifiedView.style.display = "none";
+    });
+
+    modeUnifiedBtn.addEventListener("click", () => {
+      modeUnifiedBtn.classList.add("active");
+      modeSideBtn.classList.remove("active");
+      diffSideView.style.display = "none";
+      diffUnifiedView.style.display = "block";
+    });
+  }
+
+  // Copy buttons
+  if (copyFixBtn) {
+    copyFixBtn.addEventListener("click", () => {
+      if (currentReport && currentReport.suggested_fix) {
+        navigator.clipboard.writeText(currentReport.suggested_fix);
+        copyFixBtn.textContent = "✅ Copied!";
+        setTimeout(() => { copyFixBtn.textContent = "📋 Copy Fix"; }, 2000);
+      }
+    });
+  }
+
+  if (copyTestsBtn) {
+    copyTestsBtn.addEventListener("click", () => {
+      if (currentReport && currentReport.test_cases) {
+        navigator.clipboard.writeText(currentReport.test_cases);
+        copyTestsBtn.textContent = "✅ Copied!";
+        setTimeout(() => { copyTestsBtn.textContent = "📋 Copy Tests"; }, 2000);
+      }
+    });
+  }
+
+  if (downloadReportBtn) {
+    downloadReportBtn.addEventListener("click", handleDownloadReport);
+  }
+
+  // Tab switching
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+
+      btn.classList.add("active");
+      const targetId = btn.getAttribute("data-tab");
+      const targetPanel = document.getElementById(targetId);
+      if (targetPanel) targetPanel.classList.add("active");
+    });
+  });
+
+  // Check health
+  checkBackendHealth(currentBackendUrl);
+}
+
+// Auto run when script loads or on DOMContentLoaded
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
+
+async function checkBackendHealth(url) {
+  const backendIndicator = document.getElementById("backend-indicator");
+  const backendStatusText = document.getElementById("backend-status-text");
+
+  if (backendIndicator) backendIndicator.className = "pulse-dot pulse-amber";
+  if (backendStatusText) backendStatusText.textContent = "Backend: Connecting...";
+
+  // Check for HTTPS -> HTTP Mixed content block
+  if (window.location.protocol === "https:" && url.startsWith("http://")) {
+    if (backendIndicator) backendIndicator.className = "pulse-dot pulse-red";
+    if (backendStatusText) backendStatusText.textContent = "Backend: Mixed Content (Needs HTTPS)";
+    return false;
+  }
+
+  try {
+    const res = await fetch(`${url}/api/health`, { method: "GET" });
+    if (res.ok) {
+      if (backendIndicator) backendIndicator.className = "pulse-dot";
+      if (backendStatusText) backendStatusText.textContent = "Backend: Online";
+
+      // Load languages & samples dynamically
+      fetch(`${url}/api/samples`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.samples) {
+            sampleSnippets = data.samples;
+            populateSampleSelect(data.samples);
+          }
+        })
+        .catch(() => {});
+
+      return true;
+    } else {
+      if (backendIndicator) backendIndicator.className = "pulse-dot pulse-red";
+      if (backendStatusText) backendStatusText.textContent = "Backend: Error";
+      return false;
+    }
+  } catch (e) {
+    if (backendIndicator) backendIndicator.className = "pulse-dot pulse-red";
+    if (backendStatusText) backendStatusText.textContent = "Backend: Offline";
+    return false;
+  }
+}
+
+function populateSampleSelect(samplesObj) {
+  const sampleSelect = document.getElementById("sample-select");
+  if (!sampleSelect) return;
+  const currentVal = sampleSelect.value;
+  sampleSelect.innerHTML = '<option value="">-- Choose Sample Snippet --</option>';
+  for (const [key, item] of Object.entries(samplesObj)) {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = item.title;
+    if (key === currentVal) opt.selected = true;
+    sampleSelect.appendChild(opt);
+  }
+}
+
+async function handleRunReview() {
+  const editor = document.getElementById("code-editor");
+  const languageSelect = document.getElementById("language-select");
+  const loadingContainer = document.getElementById("loading-container");
+  const runBtn = document.getElementById("run-review-btn");
+  const reportSection = document.getElementById("report-section");
+
+  const code = editor ? editor.value.trim() : "";
+  if (!code) {
+    showError("Please paste or write source code before initiating review.");
+    return;
+  }
+
+  // Check if backend is pointing to localhost on a remote HTTPS site
+  if (window.location.protocol === "https:" && currentBackendUrl.startsWith("http://")) {
+    showError(`Your browser is on HTTPS (${window.location.origin}), but your backend is configured as '${currentBackendUrl}'. Browsers block unencrypted HTTP requests from HTTPS sites. Please click the ⚙️ icon in the top right to configure your deployed Render backend HTTPS URL (e.g. https://your-backend.onrender.com).`);
+    return;
+  }
+
+  hideError();
+  if (loadingContainer) loadingContainer.style.display = "flex";
+  if (runBtn) {
+    runBtn.disabled = true;
+    const btnText = runBtn.querySelector(".btn-text");
+    if (btnText) btnText.textContent = "Analyzing Code...";
+  }
+  currentCode = code;
+
+  try {
+    const res = await fetch(`${currentBackendUrl}/api/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: code,
+        language: (languageSelect && languageSelect.value) || "Auto-Detect"
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server error (Status ${res.status})`);
+    }
+
+    const report = await res.json();
+    currentReport = report;
+    renderReport(report);
+    if (reportSection) {
+      reportSection.style.display = "block";
+      reportSection.scrollIntoView({ behavior: "smooth" });
+    }
+  } catch (err) {
+    showError(`Review request failed: ${err.message}. Ensure your Render backend service is running and accessible at: ${currentBackendUrl} (Click the ⚙️ icon at the top right to change).`);
+  } finally {
+    if (loadingContainer) loadingContainer.style.display = "none";
+    if (runBtn) {
+      runBtn.disabled = false;
+      const btnText = runBtn.querySelector(".btn-text");
+      if (btnText) btnText.textContent = "Run Comprehensive Review";
+    }
+  }
+}
+
+function showError(msg) {
+  const errorBanner = document.getElementById("error-banner");
+  if (errorBanner) {
+    errorBanner.textContent = `⚠️ ${msg}`;
+    errorBanner.style.display = "block";
+    errorBanner.scrollIntoView({ behavior: "smooth" });
+  } else {
+    alert(msg);
+  }
+}
+
+function hideError() {
+  const errorBanner = document.getElementById("error-banner");
+  if (errorBanner) {
+    errorBanner.style.display = "none";
+  }
+}
+
+function renderReport(report) {
+  const criticalAlert = document.getElementById("critical-alert");
+  const scoreValue = document.getElementById("score-value");
+  const scoreBadgeWrap = document.getElementById("score-badge-wrap");
+  const reportLangMain = document.getElementById("report-lang-main");
+  const reportLangSub = document.getElementById("report-lang-sub");
+  const reportTimeComp = document.getElementById("report-time-comp");
+  const reportSpaceComp = document.getElementById("report-space-comp");
+
+  const subSecVal = document.getElementById("sub-sec-val");
+  const subSecBar = document.getElementById("sub-sec-bar");
+  const subMaintVal = document.getElementById("sub-maint-val");
+  const subMaintBar = document.getElementById("sub-maint-bar");
+  const subPerfVal = document.getElementById("sub-perf-val");
+  const subPerfBar = document.getElementById("sub-perf-bar");
+
+  const chipCritical = document.getElementById("chip-critical");
+  const chipHigh = document.getElementById("chip-high");
+  const chipMedium = document.getElementById("chip-medium");
+  const chipLow = document.getElementById("chip-low");
+
+  const countSec = document.getElementById("count-sec");
+  const countBugs = document.getElementById("count-bugs");
+  const countSmells = document.getElementById("count-smells");
+
+  const execSummaryBox = document.getElementById("exec-summary-box");
+  const detailTimeComp = document.getElementById("detail-time-comp");
+  const detailSpaceComp = document.getElementById("detail-space-comp");
+  const complexityExplanation = document.getElementById("complexity-explanation");
+
+  const securityIssuesList = document.getElementById("security-issues-list");
+  const bugsList = document.getElementById("bugs-list");
+  const smellsList = document.getElementById("smells-list");
+  const styleList = document.getElementById("style-list");
+
+  const diffOrigCode = document.getElementById("diff-orig-code");
+  const diffFixedCode = document.getElementById("diff-fixed-code");
+  const diffUnifiedCode = document.getElementById("diff-unified-code");
+
+  const testsCode = document.getElementById("tests-code");
+  const practicesList = document.getElementById("practices-list");
+  const markdownPreview = document.getElementById("markdown-preview");
+
+  // 1. Critical Alert
+  const hasCritical = report.has_fatal_syntax || (report.severity_counts && report.severity_counts.CRITICAL > 0);
+  if (criticalAlert) criticalAlert.style.display = hasCritical ? "flex" : "none";
+
+  // 2. Metrics Header
+  const score = report.quality_score || 0;
+  if (scoreValue) {
+    scoreValue.innerHTML = `${score}<span class="score-den">/100</span>`;
+    scoreValue.className = "score-glow " + (score >= 85 ? "score-excellent" : score >= 60 ? "score-warning" : "score-danger");
+  }
+
+  if (scoreBadgeWrap) {
+    scoreBadgeWrap.innerHTML = score >= 85
+      ? '<span class="sev-badge" style="background:rgba(16,185,129,0.2); color:#6EE7B7; border:1px solid #10B981;">🟢 Production Ready</span>'
+      : score >= 60
+      ? '<span class="sev-badge" style="background:rgba(245,158,11,0.2); color:#FDE047; border:1px solid #F59E0B;">🟡 Needs Remediation</span>'
+      : '<span class="sev-badge" style="background:rgba(244,63,94,0.2); color:#FDA4AF; border:1px solid #F43F5E;">🔴 Critical Risk</span>';
+  }
+
+  if (reportLangMain) reportLangMain.textContent = report.language || "Unknown";
+  if (reportLangSub) reportLangSub.textContent = report.language_display || report.language || "";
+  if (reportTimeComp) reportTimeComp.textContent = report.time_complexity || "O(N)";
+  if (reportSpaceComp) reportSpaceComp.textContent = report.space_complexity || "O(1)";
+
+  // 3. Sub-scores
+  if (report.sub_scores) {
+    const { security = 0, maintainability = 0, performance = 0 } = report.sub_scores;
+    if (subSecVal) subSecVal.textContent = `${security}/100`;
+    if (subSecBar) subSecBar.style.width = `${security}%`;
+
+    if (subMaintVal) subMaintVal.textContent = `${maintainability}/100`;
+    if (subMaintBar) subMaintBar.style.width = `${maintainability}%`;
+
+    if (subPerfVal) subPerfVal.textContent = `${performance}/100`;
+    if (subPerfBar) subPerfBar.style.width = `${performance}%`;
+  }
+
+  // 4. Severity Counts
+  if (report.severity_counts) {
+    if (chipCritical) chipCritical.textContent = `🚨 Critical (${report.severity_counts.CRITICAL || 0})`;
+    if (chipHigh) chipHigh.textContent = `⚠️ High Priority (${report.severity_counts.HIGH || 0})`;
+    if (chipMedium) chipMedium.textContent = `💡 Medium (${report.severity_counts.MEDIUM || 0})`;
+    if (chipLow) chipLow.textContent = `ℹ️ Style / Low (${report.severity_counts.LOW || 0})`;
+  }
+
+  // 5. Tabs Counters
+  const secIssues = report.security_issues || [];
+  const bugIssues = report.bugs || [];
+  const smellIssues = report.code_smells || [];
+  const styleIssues = report.style_issues || [];
+
+  if (countSec) countSec.textContent = secIssues.length;
+  if (countBugs) countBugs.textContent = bugIssues.length;
+  if (countSmells) countSmells.textContent = smellIssues.length + styleIssues.length;
+
+  // 6. Tab 1: Executive Summary & Complexity
+  if (execSummaryBox) execSummaryBox.textContent = report.executive_summary || "No executive summary available.";
+  if (detailTimeComp) detailTimeComp.textContent = report.time_complexity || "O(N)";
+  if (detailSpaceComp) detailSpaceComp.textContent = report.space_complexity || "O(1)";
+  if (complexityExplanation) {
+    complexityExplanation.innerHTML = report.complexity_explanation ? `<strong>Detailed Complexity Rationale:</strong><p style="margin-top:4px;">${escapeHtml(report.complexity_explanation)}</p>` : "";
+  }
+
+  // 7. Tab 2: Security Vulnerabilities
+  if (securityIssuesList) {
+    if (secIssues.length === 0) {
+      securityIssuesList.innerHTML = '<div style="padding:14px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; color:#6EE7B7;">✅ Clean security audit! No vulnerabilities detected.</div>';
+    } else {
+      securityIssuesList.innerHTML = secIssues.map((issue) => `
+        <div class="issue-card" style="border-left: 4px solid ${getSevColor(issue.severity)};">
+          <div class="issue-header">
+            <div class="issue-title-wrap">
+              <span class="issue-title">${escapeHtml(issue.title || "Vulnerability")}</span>
+              ${issue.line ? `<span class="line-tag">📍 Line ${issue.line}</span>` : ""}
+            </div>
+            ${getBadgeHtml(issue.severity)}
+          </div>
+          <p class="issue-desc">${escapeHtml(issue.description || "")}</p>
+          ${issue.cwe ? `<div class="cwe-ref"><strong>CWE Reference:</strong> <code>${escapeHtml(issue.cwe)}</code></div>` : ""}
+          <div class="issue-remediation"><strong>Remediation:</strong> ${escapeHtml(issue.recommendation || "")}</div>
+        </div>
+      `).join("");
+    }
+  }
+
+  // 8. Tab 3: Bugs
+  if (bugsList) {
+    if (bugIssues.length === 0) {
+      bugsList.innerHTML = '<div style="padding:14px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; color:#6EE7B7;">✅ No logic flaws or syntax errors detected.</div>';
+    } else {
+      bugsList.innerHTML = bugIssues.map((bug) => `
+        <div class="issue-card" style="border-left: 4px solid ${getSevColor(bug.severity)};">
+          <div class="issue-header">
+            <div class="issue-title-wrap">
+              <span class="issue-title">${escapeHtml(bug.title || "Bug")}</span>
+              ${bug.line ? `<span class="line-tag">📍 Line ${bug.line}${bug.column ? `, Col ${bug.column}` : ""}</span>` : ""}
+            </div>
+            ${getBadgeHtml(bug.severity)}
+          </div>
+          <p class="issue-desc">${escapeHtml(bug.description || "")}</p>
+          ${bug.code_snippet ? `<pre class="code-pre" style="margin: 8px 0; border-left: 2px solid ${getSevColor(bug.severity)};"><code>${escapeHtml(bug.code_snippet)}</code></pre>` : ""}
+          <div class="issue-resolution"><strong>Resolution:</strong> ${escapeHtml(bug.recommendation || "")}</div>
+        </div>
+      `).join("");
+    }
+  }
+
+  // 9. Tab 4: Code Smells & Style
+  if (smellsList) {
+    if (smellIssues.length === 0) {
+      smellsList.innerHTML = '<div style="padding:12px; background:rgba(255,255,255,0.02); border-radius:8px; color:#94A3B8;">✅ No architectural code smells detected.</div>';
+    } else {
+      smellsList.innerHTML = smellIssues.map((sm) => `
+        <div class="issue-card" style="border-left: 4px solid #FDE047;">
+          <div class="issue-header">
+            <span style="font-weight:700; color:#F8FAFC;">💡 ${escapeHtml(sm.title || "Code Smell")}</span>
+            ${getBadgeHtml(sm.severity || "MEDIUM")}
+          </div>
+          <p class="issue-desc">${escapeHtml(sm.description || "")}</p>
+          <div style="font-size:0.85rem; color:#6EE7B7;"><strong>Refactoring Tip:</strong> ${escapeHtml(sm.recommendation || "")}</div>
+        </div>
+      `).join("");
+    }
+  }
+
+  if (styleList) {
+    if (styleIssues.length === 0) {
+      styleList.innerHTML = '<div style="padding:12px; background:rgba(255,255,255,0.02); border-radius:8px; color:#94A3B8;">✅ Clean code formatting and convention conformance.</div>';
+    } else {
+      styleList.innerHTML = styleIssues.map((st) => `
+        <div style="padding:8px 12px; background:rgba(255,255,255,0.02); border-left:3px solid #38BDF8; margin-bottom:8px; border-radius:4px; font-size:0.88rem;">
+          <strong style="color:#38BDF8;">${escapeHtml(st.rule || "Style")}:</strong> <span style="color:#CBD5E1;">${escapeHtml(st.description || "")}</span>
+        </div>
+      `).join("");
+    }
+  }
+
+  // 10. Tab 5: Auto-Fix & Diff
+  if (diffOrigCode) diffOrigCode.textContent = currentCode;
+  if (diffFixedCode) diffFixedCode.textContent = report.suggested_fix || currentCode;
+  if (diffUnifiedCode) diffUnifiedCode.textContent = report.unified_diff || "No line alterations detected.";
+
+  // 11. Tab 6: Unit Tests
+  if (testsCode) testsCode.textContent = report.test_cases || "// No test cases generated.";
+
+  // 12. Tab 7: Best Practices
+  if (practicesList) {
+    const practices = report.best_practices || [];
+    if (practices.length === 0) {
+      practicesList.innerHTML = '<p style="color:#94A3B8;">No special recommendations for this snippet.</p>';
+    } else {
+      practicesList.innerHTML = practices.map((bp) => `
+        <div class="practice-item">${escapeHtml(bp)}</div>
+      `).join("");
+    }
+  }
+
+  // 13. Tab 8: Export
+  if (markdownPreview) markdownPreview.textContent = report.markdown_report || "";
+}
+
+function handleDownloadReport() {
+  if (!currentReport || !currentReport.markdown_report) return;
+  const blob = new Blob([currentReport.markdown_report], { type: "text/markdown;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `nexreview_${(currentReport.language || "analysis").toLowerCase()}_report.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function getSevColor(sev) {
+  const s = (sev || "MEDIUM").toUpperCase();
+  if (s === "CRITICAL") return "#F43F5E";
+  if (s === "HIGH") return "#F97316";
+  if (s === "MEDIUM") return "#EAB308";
+  return "#38BDF8";
+}
+
+function getBadgeHtml(sev) {
+  const s = (sev || "MEDIUM").toUpperCase();
+  if (s === "CRITICAL") return '<span class="sev-badge sev-critical">🚨 Critical</span>';
+  if (s === "HIGH") return '<span class="sev-badge sev-high">⚠️ High</span>';
+  if (s === "MEDIUM") return '<span class="sev-badge sev-medium">💡 Medium</span>';
+  return '<span class="sev-badge sev-low">ℹ️ Low / Style</span>';
+}
+
+function escapeHtml(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+</script>
+</body>
+</html>
