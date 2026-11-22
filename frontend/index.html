@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexReview AI | Intelligent Multi-Engine Code Reviewer</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366F1'><path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo">⚡</div>
+        <div class="brand-text">
+          <span class="brand-name">NexReview</span>
+          <span class="brand-badge">AI</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div id="backend-status-pill" class="backend-status-pill" title="Click to configure backend API URL">
+          <span id="backend-indicator" class="pulse-dot pulse-amber"></span>
+          <span id="backend-status-text">Backend: Connecting...</span>
+          <span class="gear-icon">⚙️</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Backend Config Drawer / Modal -->
+    <div id="backend-config-card" class="glass-card backend-config-card" style="display: none;">
+      <div class="config-header">
+        <h4>⚙️ Render Backend Configuration</h4>
+        <button id="close-config-btn" class="btn-text">✕</button>
+      </div>
+      <p class="config-desc">
+        Set the target Render backend API endpoint (e.g. <code>https://nexreview-backend.onrender.com</code>) or local backend (<code>http://localhost:8000</code>).
+      </p>
+      <div class="config-input-group">
+        <input type="text" id="backend-url-input" placeholder="http://localhost:8000" />
+        <button id="test-connection-btn" class="btn-secondary">Test Connection</button>
+        <button id="save-config-btn" class="btn-primary-sm">Save</button>
+      </div>
+      <div id="connection-test-feedback" class="test-feedback"></div>
+    </div>
+
+    <!-- Hero Banner -->
+    <section class="hero-container">
+      <div class="hero-pill-row">
+        <span class="pill-tag"><span class="pulse-dot"></span> Pipeline Ready</span>
+        <span class="pill-tag pill-emerald">Multi-Language Engine</span>
+        <span class="pill-tag pill-rose">CWE Security Audit</span>
+        <span class="pill-tag pill-purple">Vercel & Render Ready</span>
+      </div>
+      <h1 class="hero-title">⚡ NexReview AI Agent</h1>
+      <p class="hero-subtitle">
+        Enterprise-grade code reviewer combining deep static AST analysis, security vulnerability auditing, 
+        code smell diagnostics, algorithmic complexity modeling, and automated test & auto-fix diff synthesis.
+      </p>
+      <div class="hero-tags">
+        <span>Python</span><span>JavaScript</span><span>TypeScript</span><span>SQL</span>
+        <span>MongoDB</span><span>PHP</span><span>Java</span><span>C / C++</span><span>Perl</span>
+        <span>Go</span><span>Rust</span><span>Ruby</span>
+      </div>
+    </section>
+
+    <!-- Main Workspace -->
+    <main class="main-card glass-card">
+      <!-- Control Deck -->
+      <div class="controls-grid">
+        <div class="control-group">
+          <label for="language-select">🎯 Target Language</label>
+          <select id="language-select">
+            <option value="Auto-Detect">Auto-Detect</option>
+            <option value="Python" selected>Python</option>
+            <option value="JavaScript">JavaScript</option>
+            <option value="TypeScript">TypeScript</option>
+            <option value="SQL">SQL</option>
+            <option value="MongoDB">MongoDB</option>
+            <option value="Perl">Perl</option>
+            <option value="PHP">PHP</option>
+            <option value="Java">Java</option>
+            <option value="C">C</option>
+            <option value="C++">C++</option>
+            <option value="C#">C#</option>
+            <option value="Go">Go</option>
+            <option value="Rust">Rust</option>
+            <option value="Ruby">Ruby</option>
+            <option value="HTML/CSS">HTML/CSS</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="sample-select">📦 Quick Load Sample</label>
+          <select id="sample-select">
+            <option value="">-- Choose Sample Snippet --</option>
+            <option value="python_sqli" selected>🐍 Python: Dynamic SQL Injection</option>
+            <option value="sql_cartesian">🗄️ SQL: Unindexed Cartesian Join & DELETE</option>
+            <option value="mongo_injection">🍃 MongoDB: NoSQL $where Injection</option>
+            <option value="perl_open">🐪 Perl: Two-Argument open() Vulnerability</option>
+            <option value="php_scope">🐘 PHP: Zero Division & Broken Scope</option>
+            <option value="js_xss">⚡ JavaScript: DOM XSS & Loose Coercion</option>
+            <option value="c_overflow">⚙️ C: Unbounded Buffer Overflow</option>
+            <option value="java_resource">☕ Java: Resource Leak & Concatenation</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Editor Toolbar -->
+      <div class="editor-toolbar">
+        <span class="editor-label">Source Code Input</span>
+        <div class="toolbar-actions">
+          <button id="clear-code-btn" class="btn-secondary-sm">Clear</button>
+          <button id="reset-sample-btn" class="btn-secondary-sm">Reset Sample</button>
+        </div>
+      </div>
+
+      <!-- Code Textarea -->
+      <div class="editor-wrapper">
+        <textarea id="code-editor" spellcheck="false" placeholder="Paste source code snippet here..."></textarea>
+      </div>
+
+      <!-- Review Action Bar -->
+      <div class="action-bar">
+        <button id="run-review-btn" class="btn-primary">
+          <span class="btn-icon">🚀</span>
+          <span class="btn-text">Run Comprehensive Review</span>
+        </button>
+
+        <span id="editor-stats" class="editor-stats">0 characters • 0 lines</span>
+      </div>
+
+      <!-- Status / Loader Notification -->
+      <div id="loading-container" class="loading-container" style="display: none;">
+        <div class="spinner"></div>
+        <div class="loading-text">
+          <div class="loading-title">Orchestrating Review Pipeline...</div>
+          <div class="loading-subtitle">AST Static Analysis ➔ CWE Security Audit ➔ Smells ➔ AI Deep Review ➔ Auto-Fix Synthesis</div>
+        </div>
+      </div>
+
+      <div id="error-banner" class="alert-banner alert-danger" style="display: none;"></div>
+    </main>
+
+    <!-- Report Section -->
+    <section id="report-section" class="report-section" style="display: none;">
+      <!-- Critical Flaws Alert -->
+      <div id="critical-alert" class="critical-alert" style="display: none;">
+        <span class="alert-icon">🚨</span>
+        <div class="alert-content">
+          <strong class="alert-title">Critical Flaws Detected</strong>
+          <div class="alert-message">
+            The submitted code contains critical syntax errors or severe security vulnerabilities. Check the <strong>Logic & Bugs</strong> and <strong>Auto-Fix & Diff</strong> tabs for details.
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Executive Metric Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card-pro">
+          <div class="metric-label">Quality Score</div>
+          <div id="score-value" class="score-glow">--<span class="score-den">/100</span></div>
+          <div id="score-badge-wrap" style="margin-top: 8px;"></div>
+        </div>
+
+        <div class="metric-card-pro">
+          <div class="metric-label">Language & Runtime</div>
+          <div id="report-lang-main" class="metric-hero-val" style="color: #38BDF8;">--</div>
+          <div id="report-lang-sub" class="metric-sub-val" style="color: #A7F3D0;">--</div>
+        </div>
+
+        <div class="metric-card-pro">
+          <div class="metric-label">Time Complexity</div>
+          <div id="report-time-comp" class="metric-hero-val" style="color: #C084FC;">--</div>
+          <div class="metric-sub-val" style="color: #94A3B8;">Algorithmic Scaling</div>
+        </div>
+
+        <div class="metric-card-pro">
+          <div class="metric-label">Space Complexity</div>
+          <div id="report-space-comp" class="metric-hero-val" style="color: #2DD4BF;">--</div>
+          <div class="metric-sub-val" style="color: #94A3B8;">Memory Footprint</div>
+        </div>
+      </div>
+
+      <!-- Sub-Score Progress Bars & Severity Counters -->
+      <div class="glass-card subscores-card">
+        <div class="progress-bars-grid">
+          <div>
+            <div class="progress-header">
+              <span>Security Index</span>
+              <span id="sub-sec-val" style="color: #38BDF8;">--/100</span>
+            </div>
+            <div class="progress-track">
+              <div id="sub-sec-bar" class="progress-fill fill-cyan" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="progress-header">
+              <span>Maintainability Index</span>
+              <span id="sub-maint-val" style="color: #A7F3D0;">--/100</span>
+            </div>
+            <div class="progress-track">
+              <div id="sub-maint-bar" class="progress-fill fill-emerald" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="progress-header">
+              <span>Performance Index</span>
+              <span id="sub-perf-val" style="color: #FDE047;">--/100</span>
+            </div>
+            <div class="progress-track">
+              <div id="sub-perf-bar" class="progress-fill fill-amber" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="severity-chips-row" class="severity-chips-row">
+          <span class="sev-badge sev-critical" id="chip-critical">🚨 Critical (0)</span>
+          <span class="sev-badge sev-high" id="chip-high">⚠️ High Priority (0)</span>
+          <span class="sev-badge sev-medium" id="chip-medium">💡 Medium (0)</span>
+          <span class="sev-badge sev-low" id="chip-low">ℹ️ Style / Low (0)</span>
+        </div>
+      </div>
+
+      <!-- Multi-Tab Details -->
+      <div class="glass-card tabs-card">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="tab-overview">📊 Executive Summary</button>
+          <button class="tab-btn" data-tab="tab-security">🛡️ Security Vulnerabilities (<span id="count-sec">0</span>)</button>
+          <button class="tab-btn" data-tab="tab-bugs">🐛 Logic & Bugs (<span id="count-bugs">0</span>)</button>
+          <button class="tab-btn" data-tab="tab-smells">🧹 Code Smells & Style (<span id="count-smells">0</span>)</button>
+          <button class="tab-btn" data-tab="tab-autofix">🔄 Auto-Fix & Diff</button>
+          <button class="tab-btn" data-tab="tab-tests">🧪 Unit Tests</button>
+          <button class="tab-btn" data-tab="tab-practices">💡 Best Practices</button>
+          <button class="tab-btn" data-tab="tab-export">📥 Export Report</button>
+        </div>
+
+        <div class="tab-contents">
+          <!-- Tab 1: Executive Summary -->
+          <div id="tab-overview" class="tab-panel active">
+            <h3 class="panel-heading">📋 Executive Summary</h3>
+            <div id="exec-summary-box" class="summary-box"></div>
+
+            <h3 class="panel-heading" style="margin-top: 24px;">⏱️ Algorithmic Complexity Breakdown</h3>
+            <div class="complexity-cards-grid">
+              <div class="issue-card" style="border-left: 4px solid #C084FC;">
+                <div style="font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">⏱️ Time Complexity</div>
+                <div id="detail-time-comp" style="font-size: 1.5rem; font-weight: 800; color: #C084FC;">--</div>
+              </div>
+              <div class="issue-card" style="border-left: 4px solid #2DD4BF;">
+                <div style="font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">💾 Space Complexity</div>
+                <div id="detail-space-comp" style="font-size: 1.5rem; font-weight: 800; color: #2DD4BF;">--</div>
+              </div>
+            </div>
+            <div id="complexity-explanation" class="complexity-desc"></div>
+          </div>
+
+          <!-- Tab 2: Security -->
+          <div id="tab-security" class="tab-panel">
+            <h3 class="panel-heading">🛡️ Security Vulnerability Audit</h3>
+            <div id="security-issues-list"></div>
+          </div>
+
+          <!-- Tab 3: Bugs -->
+          <div id="tab-bugs" class="tab-panel">
+            <h3 class="panel-heading">🐛 Bugs & Logic Anomalies</h3>
+            <div id="bugs-list"></div>
+          </div>
+
+          <!-- Tab 4: Code Smells -->
+          <div id="tab-smells" class="tab-panel">
+            <h3 class="panel-heading">🧹 Architectural & Cognitive Smells</h3>
+            <div id="smells-list"></div>
+
+            <h3 class="panel-heading" style="margin-top: 28px;">🎨 Code Style & Conventions</h3>
+            <div id="style-list"></div>
+          </div>
+
+          <!-- Tab 5: Auto-Fix -->
+          <div id="tab-autofix" class="tab-panel">
+            <div class="autofix-header">
+              <h3 class="panel-heading" style="margin: 0;">🔄 Automated Code Fix & Diff Comparison</h3>
+              <div class="diff-toggle-group">
+                <button id="mode-side-btn" class="btn-toggle active">Side-by-Side</button>
+                <button id="mode-unified-btn" class="btn-toggle">Unified Diff</button>
+                <button id="copy-fix-btn" class="btn-secondary-sm">📋 Copy Fix</button>
+              </div>
+            </div>
+
+            <div id="diff-side-view" class="diff-side-grid">
+              <div>
+                <div class="diff-label label-red">❌ Original Code (Before)</div>
+                <pre id="diff-orig-code" class="code-pre code-red"></pre>
+              </div>
+              <div>
+                <div class="diff-label label-green">✅ Auto-Fixed Code (After)</div>
+                <pre id="diff-fixed-code" class="code-pre code-green"></pre>
+              </div>
+            </div>
+
+            <div id="diff-unified-view" style="display: none;">
+              <div class="diff-label label-blue">🔀 Unified Line Diff</div>
+              <pre id="diff-unified-code" class="code-pre"></pre>
+            </div>
+          </div>
+
+          <!-- Tab 6: Unit Tests -->
+          <div id="tab-tests" class="tab-panel">
+            <div class="tests-header">
+              <h3 class="panel-heading" style="margin: 0;">🧪 Autonomous Unit Test Suite</h3>
+              <button id="copy-tests-btn" class="btn-secondary-sm">📋 Copy Tests</button>
+            </div>
+            <p style="color: #94A3B8; font-size: 0.88rem; margin: 8px 0 14px;">
+              Generated unit tests covering happy paths, edge bounds, and negative assertions:
+            </p>
+            <pre id="tests-code" class="code-pre code-purple"></pre>
+          </div>
+
+          <!-- Tab 7: Best Practices -->
+          <div id="tab-practices" class="tab-panel">
+            <h3 class="panel-heading">💡 Senior Engineering Recommendations</h3>
+            <div id="practices-list"></div>
+          </div>
+
+          <!-- Tab 8: Export -->
+          <div id="tab-export" class="tab-panel">
+            <h3 class="panel-heading">📥 Download & Export Report</h3>
+            <p style="color: #94A3B8; font-size: 0.9rem; margin-bottom: 16px;">
+              Export the full multi-engine audit as an enterprise Markdown report (.md).
+            </p>
+            <button id="download-report-btn" class="btn-primary" style="margin-bottom: 20px;">
+              📄 Download Full Markdown Report (.md)
+            </button>
+            <h4 style="color: #CBD5E1; font-size: 0.92rem; margin-bottom: 8px;">Raw Markdown Preview:</h4>
+            <pre id="markdown-preview" class="code-pre"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>NexReview AI Agent • Hybrid Multi-Engine AST, CWE, & LLM Pipeline</div>
+      <div>Deploy Frontend to <strong>Vercel</strong> | Deploy Backend to <strong>Render</strong></div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

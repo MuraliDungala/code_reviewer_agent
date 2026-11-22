@@ -1,0 +1,13 @@
+streamlit
+streamlit-ace
+python-dotenv
+groq
+langchain
+langchain-groq
+flake8
+black
+gradio
+google-generativeai
+pandas
+numpy
+altair
