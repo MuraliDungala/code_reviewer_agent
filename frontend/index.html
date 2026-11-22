@@ -1389,8 +1389,7 @@ function initApp() {
   function updateStats() {
     const text = editor ? editor.value : "";
     const chars = text.length;
-    const lines = text ? text.split("
-").length : 0;
+    const lines = text ? text.split("\n").length : 0;
     if (statsEl) {
       statsEl.textContent = `${chars} characters • ${lines} lines`;
     }
